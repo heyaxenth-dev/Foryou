@@ -1,0 +1,5 @@
+run = "npm start"
+entrypoint = "index.html"
+
+[deployment]
+run = ["sh", "-c", "npm install && npm start"]

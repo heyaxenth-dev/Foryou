@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View replies</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #ff4d6d;
+      --text: #590d22;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: var(--text);
+    }
+    h1 {
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .replies {
+      max-width: 600px;
+    }
+    .reply-card {
+      background: rgba(255,255,255,0.9);
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-left: 4px solid var(--primary);
+    }
+    .reply-card .text { margin-bottom: 0.5rem; line-height: 1.5; }
+    .reply-card .time { font-size: 0.85rem; color: #888; }
+    .empty { color: #666; font-style: italic; }
+    .error { color: #c00; margin-top: 1rem; }
+    .refresh { margin-top: 1rem; }
+    .refresh a, .refresh button {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    .refresh a:hover, .refresh button:hover { background: #e63946; }
+  </style>
+</head>
+<body>
+  <h1>Valentine replies</h1>
+  <div class="replies" id="replies"></div>
+  <div class="refresh">
+    <button type="button" onclick="loadReplies()">Refresh</button>
+    <a href="/" style="margin-left: 0.5rem;">Back to letter</a>
+  </div>
+
+  <script>
+    async function loadReplies() {
+      const el = document.getElementById('replies');
+      try {
+        const res = await fetch('/api/replies');
+        const replies = await res.json();
+        if (!replies.length) {
+          el.innerHTML = '<p class="empty">No replies yet.</p>';
+          return;
+        }
+        el.innerHTML = replies.map(r => `
+          <div class="reply-card">
+            <div class="text">${escapeHtml(r.reply)}</div>
+            <div class="time">${new Date(r.time).toLocaleString()}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        el.innerHTML = '<p class="error">Could not load replies. Make sure the server is running.</p>';
+      }
+    }
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML.replace(/\n/g, '<br>');
+    }
+    loadReplies();
+  </script>
+</body>
+</html>
