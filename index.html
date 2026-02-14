@@ -744,8 +744,6 @@
 		</div>
 
 		<script>
-			var BIRTHDAY_UNLOCK_KEY = 'letterBirthdayUnlocked';
-
 			function checkBirthday(e) {
 				e.preventDefault();
 				var pin = (window.BIRTHDAY_GATE || '').toString().trim();
@@ -761,9 +759,6 @@
 					return false;
 				}
 				if (value === pin) {
-					try {
-						sessionStorage.setItem(BIRTHDAY_UNLOCK_KEY, '1');
-					} catch (_) {}
 					unlockLetter();
 					return false;
 				}
@@ -784,11 +779,7 @@
 				if (!gate || !stage) return;
 				var pin = (window.BIRTHDAY_GATE || '').toString().trim();
 				var required = pin.length === 6;
-				var unlocked = false;
-				try {
-					unlocked = sessionStorage.getItem(BIRTHDAY_UNLOCK_KEY) === '1';
-				} catch (_) {}
-				if (!required || unlocked) {
+				if (!required) {
 					gate.classList.add('gate-hidden');
 					stage.classList.remove('behind-gate');
 				} else {
