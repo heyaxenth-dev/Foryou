@@ -638,19 +638,27 @@
 				document.getElementById('reply-page').classList.add('visible');
 			}
 
-			function handleReplySubmit(e) {
+			async function handleReplySubmit(e) {
 				e.preventDefault();
 				const textarea = document.getElementById('reply-text');
 				const reply = textarea && textarea.value ? textarea.value.trim() : '';
 				if (!reply) return;
-				const cfg = window.GITHUB_REPLIES;
-				if (cfg && cfg.user && cfg.repo) {
-					const title = encodeURIComponent('Valentine reply');
-					const body = encodeURIComponent(
-						reply + '\n\n— _Submitted ' + new Date().toISOString() + '_',
-					);
-					const url = `https://github.com/${cfg.user}/${cfg.repo}/issues/new?title=${title}&body=${body}`;
-					window.open(url, '_blank', 'noopener,noreferrer');
+				const formId = window.FORMSPREE_FORM_ID;
+				if (formId) {
+					const btn = document.querySelector('.send-reply-btn');
+					if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+					try {
+						await fetch('https://formspree.io/f/' + formId, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								reply: reply,
+								_subject: 'Valentine reply',
+								_submitted: new Date().toISOString(),
+							}),
+						});
+					} catch (err) {}
+					if (btn) { btn.disabled = false; btn.textContent = 'Send reply'; }
 				}
 				document.getElementById('reply-page').classList.remove('visible');
 				document.getElementById('bouquet-view').classList.add('visible');
