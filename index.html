@@ -107,7 +107,96 @@
 				}
 			}
 
+			/* Birthday gate */
+			#birthday-gate {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				z-index: 25;
+				transition: opacity 0.4s ease;
+			}
+			#birthday-gate.gate-hidden {
+				opacity: 0;
+				pointer-events: none;
+			}
+			.birthday-gate-card {
+				background: var(--glass-bg);
+				backdrop-filter: blur(12px);
+				border: 1px solid var(--glass-border);
+				border-radius: 20px;
+				padding: 2rem 2.5rem;
+				text-align: center;
+				box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+				max-width: 360px;
+			}
+			.birthday-gate-card h2 {
+				font-family: 'Dancing Script', cursive;
+				font-size: 1.75rem;
+				color: var(--primary-color);
+				margin-bottom: 0.5rem;
+			}
+			.birthday-gate-card p {
+				color: var(--text-color);
+				margin-bottom: 1.25rem;
+				font-size: 0.95rem;
+			}
+			.birthday-gate-card .gate-pin {
+				display: block;
+				width: 100%;
+				padding: 0.75rem 1rem;
+				border: 2px solid var(--glass-border);
+				border-radius: 10px;
+				font-size: 1.5rem;
+				font-family: inherit;
+				margin-bottom: 1rem;
+				background: rgba(255, 255, 255, 0.9);
+				text-align: center;
+				letter-spacing: 0.5em;
+				caret-color: var(--primary-color);
+			}
+			.birthday-gate-card .gate-pin:focus {
+				outline: none;
+				border-color: var(--primary-color);
+			}
+			.birthday-gate-card .gate-pin::placeholder {
+				letter-spacing: 0.4em;
+				color: #999;
+			}
+			.birthday-gate-card .gate-btn {
+				background: var(--primary-color);
+				color: #fff;
+				border: none;
+				padding: 0.65rem 1.5rem;
+				border-radius: 10px;
+				font-size: 1rem;
+				font-family: inherit;
+				cursor: pointer;
+				transition:
+					transform 0.2s,
+					background 0.2s;
+			}
+			.birthday-gate-card .gate-btn:hover {
+				background: #e63946;
+				transform: scale(1.02);
+			}
+			.birthday-gate-card .gate-error {
+				color: #c1121f;
+				font-size: 0.9rem;
+				margin-top: 0.75rem;
+				min-height: 1.25rem;
+			}
+
 			/* Envelope Stage */
+			#envelope-stage.behind-gate {
+				opacity: 0;
+				pointer-events: none;
+				visibility: hidden;
+			}
 			#envelope-stage {
 				display: flex;
 				flex-direction: column;
@@ -503,7 +592,10 @@
 			}
 		</style>
 		<script>
-			window.GITHUB_REPLIES = window.GITHUB_REPLIES || { user: 'heyaxenth-dev', repo: 'Foryou' };
+			window.GITHUB_REPLIES = window.GITHUB_REPLIES || {
+				user: 'heyaxenth-dev',
+				repo: 'Foryou',
+			};
 		</script>
 		<script src="config.js"></script>
 	</head>
@@ -514,6 +606,29 @@
 			<div class="shape"></div>
 			<div class="shape"></div>
 			<div class="shape"></div>
+		</div>
+
+		<!-- PIN gate (6-digit PIN from date 09-01-99 = 090199) -->
+		<div id="birthday-gate">
+			<div class="birthday-gate-card">
+				<h2>For your eyes only</h2>
+				<p>Enter the 6-digit PIN to continue.</p>
+				<form id="birthday-form" onsubmit="return checkBirthday(event);">
+					<input
+						type="password"
+						inputmode="numeric"
+						pattern="[0-9]*"
+						autocomplete="off"
+						maxlength="6"
+						placeholder="000000"
+						class="gate-pin"
+						id="birthday-input"
+						required
+						aria-label="6-digit PIN" />
+					<button type="submit" class="gate-btn">Continue</button>
+				</form>
+				<p class="gate-error" id="birthday-error" aria-live="polite"></p>
+			</div>
 		</div>
 
 		<!-- Envelope Stage -->
@@ -613,6 +728,58 @@
 		</div>
 
 		<script>
+			var BIRTHDAY_UNLOCK_KEY = 'letterBirthdayUnlocked';
+
+			function checkBirthday(e) {
+				e.preventDefault();
+				var pin = (window.BIRTHDAY_GATE || '').toString().trim();
+				if (!pin) {
+					unlockLetter();
+					return false;
+				}
+				var input = document.getElementById('birthday-input');
+				var errEl = document.getElementById('birthday-error');
+				var value = ((input && input.value) || '').replace(/\D/g, '');
+				if (value.length !== 6) {
+					if (errEl) errEl.textContent = 'Please enter 6 digits.';
+					return false;
+				}
+				if (value === pin) {
+					try {
+						sessionStorage.setItem(BIRTHDAY_UNLOCK_KEY, '1');
+					} catch (_) {}
+					unlockLetter();
+					return false;
+				}
+				if (errEl) errEl.textContent = 'Wrong PIN. Try again.';
+				return false;
+			}
+
+			function unlockLetter() {
+				document.getElementById('birthday-gate').classList.add('gate-hidden');
+				document
+					.getElementById('envelope-stage')
+					.classList.remove('behind-gate');
+			}
+
+			function applyBirthdayGate() {
+				var gate = document.getElementById('birthday-gate');
+				var stage = document.getElementById('envelope-stage');
+				if (!gate || !stage) return;
+				var pin = (window.BIRTHDAY_GATE || '').toString().trim();
+				var required = pin.length === 6;
+				var unlocked = false;
+				try {
+					unlocked = sessionStorage.getItem(BIRTHDAY_UNLOCK_KEY) === '1';
+				} catch (_) {}
+				if (!required || unlocked) {
+					gate.classList.add('gate-hidden');
+					stage.classList.remove('behind-gate');
+				} else {
+					stage.classList.add('behind-gate');
+				}
+			}
+
 			function openEnvelope() {
 				const envContainer = document.getElementById('envelope');
 				const letterView = document.getElementById('letter-view');
@@ -643,12 +810,17 @@
 				const textarea = document.getElementById('reply-text');
 				const reply = textarea && textarea.value ? textarea.value.trim() : '';
 				if (!reply) return;
-				const formId = window.FORMSPREE_FORM_ID;
+				const apiUrl = (window.REPLY_API_URL || '').replace(/\/$/, '');
+				const formId = window.FORMSPREE_FORM_ID || '';
+				const btn = document.querySelector('.send-reply-btn');
+				if (btn) {
+					btn.disabled = true;
+					btn.textContent = 'Sending…';
+				}
+				const sends = [];
 				if (formId) {
-					const btn = document.querySelector('.send-reply-btn');
-					if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-					try {
-						await fetch('https://formspree.io/f/' + formId, {
+					sends.push(
+						fetch('https://formspree.io/f/' + formId, {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify({
@@ -656,16 +828,36 @@
 								_subject: 'Valentine reply',
 								_submitted: new Date().toISOString(),
 							}),
-						});
-					} catch (err) {}
-					if (btn) { btn.disabled = false; btn.textContent = 'Send reply'; }
+						}).catch(function () {}),
+					);
+				}
+				if (apiUrl) {
+					sends.push(
+						fetch(apiUrl + '/api/append-reply', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ reply }),
+						}).catch(function () {}),
+					);
+				}
+				await Promise.all(sends);
+				if (btn) {
+					btn.disabled = false;
+					btn.textContent = 'Send reply';
 				}
 				document.getElementById('reply-page').classList.remove('visible');
 				document.getElementById('bouquet-view').classList.add('visible');
 			}
 
 			document.addEventListener('DOMContentLoaded', function () {
-				const form = document.getElementById('reply-form');
+				applyBirthdayGate();
+				var pinInput = document.getElementById('birthday-input');
+				if (pinInput) {
+					pinInput.addEventListener('input', function () {
+						this.value = this.value.replace(/\D/g, '').slice(0, 6);
+					});
+				}
+				var form = document.getElementById('reply-form');
 				if (form) form.addEventListener('submit', handleReplySubmit);
 			});
 

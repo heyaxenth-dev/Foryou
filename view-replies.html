@@ -74,34 +74,29 @@
         el.innerHTML = '<p class="error">Set GITHUB_REPLIES in config.js (user and repo).</p>';
         return;
       }
+      const branch = cfg.branch || 'main';
+      const url = 'https://raw.githubusercontent.com/' + cfg.user + '/' + cfg.repo + '/' + branch + '/replies.json';
       try {
-        const res = await fetch(
-          `https://api.github.com/repos/${cfg.user}/${cfg.repo}/issues?state=all&per_page=100`
-        );
+        const res = await fetch(url);
         if (!res.ok) {
-          el.innerHTML = '<p class="error">Could not load replies. Check repo is public and config.js.</p>';
+          el.innerHTML = '<p class="empty">No replies yet.</p>';
           return;
         }
-        const issues = await res.json();
-        const replies = issues
-          .filter(function (i) { return i.title === 'Valentine reply'; })
-          .map(function (i) {
-            return { reply: i.body || '', time: i.created_at };
-          })
-          .reverse();
-        if (!replies.length) {
+        const replies = await res.json();
+        if (!Array.isArray(replies) || !replies.length) {
           el.innerHTML = '<p class="empty">No replies yet.</p>';
           return;
         }
         el.innerHTML = replies.map(function (r) {
-          var text = (r.reply || '').replace(/\n— _Submitted.*$/, '').trim();
+          var text = (r.reply || '').trim();
+          var time = r.time ? new Date(r.time).toLocaleString() : '';
           return (
             '<div class="reply-card">' +
             '<div class="text">' + escapeHtml(text) + '</div>' +
-            '<div class="time">' + new Date(r.time).toLocaleString() + '</div>' +
+            (time ? '<div class="time">' + escapeHtml(time) + '</div>' : '') +
             '</div>'
           );
-        }).join('');
+        }).reverse().join('');
       } catch (err) {
         el.innerHTML = '<p class="error">Could not load replies. Check your connection and config.js.</p>';
       }
