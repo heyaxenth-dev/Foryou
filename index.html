@@ -696,6 +696,22 @@
 						I'd love to hear from you. Write your reply below:
 					</p>
 					<form id="reply-form">
+						<!-- Honeypot: leave empty. Bots often fill it; Formspree rejects those. -->
+						<input
+							type="text"
+							name="_gotcha"
+							id="formspree-gotcha"
+							tabindex="-1"
+							autocomplete="off"
+							aria-hidden="true"
+							style="
+								position: absolute;
+								left: -9999px;
+								width: 1px;
+								height: 1px;
+								opacity: 0;
+								pointer-events: none;
+							" />
 						<textarea
 							id="reply-text"
 							name="reply"
@@ -810,6 +826,9 @@
 				const textarea = document.getElementById('reply-text');
 				const reply = textarea && textarea.value ? textarea.value.trim() : '';
 				if (!reply) return;
+				const gotchaEl = document.getElementById('formspree-gotcha');
+				const gotchaFilled = gotchaEl && (gotchaEl.value || '').trim() !== '';
+				if (gotchaFilled) return;
 				const apiUrl = (window.REPLY_API_URL || '').replace(/\/$/, '');
 				const formId = window.FORMSPREE_FORM_ID || '';
 				const btn = document.querySelector('.send-reply-btn');
@@ -827,6 +846,7 @@
 								reply: reply,
 								_subject: 'Valentine reply',
 								_submitted: new Date().toISOString(),
+								_gotcha: (gotchaEl && gotchaEl.value) || '',
 							}),
 						}).catch(function () {}),
 					);
