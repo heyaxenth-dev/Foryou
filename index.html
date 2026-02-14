@@ -502,6 +502,7 @@
 				}
 			}
 		</style>
+		<script src="config.js"></script>
 	</head>
 
 	<body>
@@ -634,25 +635,19 @@
 				document.getElementById('reply-page').classList.add('visible');
 			}
 
-			async function handleReplySubmit(e) {
+			function handleReplySubmit(e) {
 				e.preventDefault();
 				const textarea = document.getElementById('reply-text');
 				const reply = textarea && textarea.value ? textarea.value.trim() : '';
 				if (!reply) return;
-				try {
-					await fetch('/api/reply', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ reply }),
-					});
-				} catch (err) {
-					// If server not reachable, still show bouquet (e.g. local file open)
-					try {
-						localStorage.setItem(
-							'valentine-reply',
-							JSON.stringify({ reply, time: new Date().toISOString() }),
-						);
-					} catch (_) {}
+				const cfg = window.GITHUB_REPLIES;
+				if (cfg && cfg.user && cfg.repo) {
+					const title = encodeURIComponent('Valentine reply');
+					const body = encodeURIComponent(
+						reply + '\n\n— _Submitted ' + new Date().toISOString() + '_',
+					);
+					const url = `https://github.com/${cfg.user}/${cfg.repo}/issues/new?title=${title}&body=${body}`;
+					window.open(url, '_blank', 'noopener,noreferrer');
 				}
 				document.getElementById('reply-page').classList.remove('visible');
 				document.getElementById('bouquet-view').classList.add('visible');

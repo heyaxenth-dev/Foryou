@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>View replies</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -59,27 +60,47 @@
   <div class="replies" id="replies"></div>
   <div class="refresh">
     <button type="button" onclick="loadReplies()">Refresh</button>
-    <a href="/" style="margin-left: 0.5rem;">Back to letter</a>
+    <a href="index.html" style="margin-left: 0.5rem;">Back to letter</a>
   </div>
 
   <script>
     async function loadReplies() {
       const el = document.getElementById('replies');
+      const cfg = window.GITHUB_REPLIES;
+      if (!cfg || !cfg.user || !cfg.repo) {
+        el.innerHTML = '<p class="error">Set GITHUB_REPLIES in config.js (user and repo).</p>';
+        return;
+      }
       try {
-        const res = await fetch('/api/replies');
-        const replies = await res.json();
+        const res = await fetch(
+          `https://api.github.com/repos/${cfg.user}/${cfg.repo}/issues?state=all&per_page=100`
+        );
+        if (!res.ok) {
+          el.innerHTML = '<p class="error">Could not load replies. Check repo is public and config.js.</p>';
+          return;
+        }
+        const issues = await res.json();
+        const replies = issues
+          .filter(function (i) { return i.title === 'Valentine reply'; })
+          .map(function (i) {
+            return { reply: i.body || '', time: i.created_at };
+          })
+          .reverse();
         if (!replies.length) {
           el.innerHTML = '<p class="empty">No replies yet.</p>';
           return;
         }
-        el.innerHTML = replies.map(r => `
-          <div class="reply-card">
-            <div class="text">${escapeHtml(r.reply)}</div>
-            <div class="time">${new Date(r.time).toLocaleString()}</div>
-          </div>
-        `).join('');
+        el.innerHTML = replies.map(function (r) {
+          var text = (r.reply || '').replace(/\n— _Submitted.*$/, '').trim();
+          return (
+            '<div class="reply-card">' +
+            '<div class="text">' + escapeHtml(text) + '</div>' +
+            '<div class="time">' + new Date(r.time).toLocaleString() + '</div>' +
+            '</div>'
+          );
+        }).join('');
       } catch (err) {
-        el.innerHTML = '<p class="error">Could not load replies. Make sure the server is running.</p>';
+        el.innerHTML = '<p class="error">Could not load replies. Check your connection and config.js.</p>';
       }
     }
     function escapeHtml(s) {
